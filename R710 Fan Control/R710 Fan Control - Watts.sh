@@ -36,32 +36,32 @@ while ! [[ "$WATTS" =~ ^[0-9]{3}$ ]]; do
 done
 
 if [[ $WATTS > $MAXWATTS ]]; then
-	if [[ $(cat ./lastRun.txt) != "auto" ]]; then
+	if [[ $(cat /tmp/ipmiControl.txt) != "auto" ]]; then
 		# Logging, run "journalctl -f" to see new entries
-		printf "Warning: Watt usage is high, setting auto fan control (Watts: $WATTS)" | systemd-cat -t R710-IPMI
+		printf "Warning: Watt usage is high, setting auto fan control (Watts: $WATTS)" | systemd -t IPMI-CONTROL
 		echo "Warning: Watt usage is too high, setting auto fan control (Watts: $WATTS)"
 
 		# Enables auto fan control
 		ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x01 0x01
 
 		echo "Setting lastRun"
-		echo "auto" > ./lastRun.txt
+		echo "auto" > /tmp/ipmiControl.txt
 	else
-		printf "Fans already set to auto, exiting (Watts: $WATTS)" | systemd-cat -t R710-IPMI
+		printf "Fans already set to auto, exiting (Watts: $WATTS)" | systemd-cat -t IPMI-CONTROL
 		echo "Fans already set to auto, exiting (Watts: $WATTS)"
 	fi
 
 else
-	if [ -f lastRun.txt ]; then
-		LASTUPDATE=$(date -r lastRun.txt +%s)
+	if [ -f /tmp/ipmiControl.txt ]; then
+		LASTUPDATE=$(date -r /tmp/ipmiControl.txt +%s)
 		NOW=$(date +%s)
 		FILE_AGE=$((NOW - LASTUPDATE))
 		echo "age $FILE_AGE"
 	fi
 
-	if [[ $(cat ./lastRun.txt) != "slow"  || file_age -gt 21600 ]]; then
+	if [[ $(cat /tmp/ipmiControl.txt) != "slow" || FILE_AGE -gt 21600 ]]; then
 
-		printf "Watt usage is OK (Watts: $WATTS)" | systemd-cat -t R710-IPMI
+		printf "Watt usage is OK (Watts: $WATTS)" | systemd-cat -t IPMI-CONTROL
 		echo "Watt usage is OK (Watts: $WATTS)"
 
 		# Set manual fan control - should always be uncommented
@@ -78,10 +78,10 @@ else
 		#ipmitool -I lanplus -H $IPMIHOST -U $IPMIUSER -P $IPMIPW -y $IPMIEK raw 0x30 0x30 0x02 0xff 0x09
 
 		echo "Setting lastRun"
-		echo "slow" > ./lastRun.txt
+		echo "slow" > /tmp/ipmiControl.txt
 	
 	else
-		printf "Fans already set to slow, exiting (Watts: $WATTS)" | systemd-cat -t R710-IPMI
+		printf "Fans already set to slow, exiting (Watts: $WATTS)" | systemd-cat -t IPMI-CONTROL
 		echo "Fans already set to slow, exiting (Watts: $WATTS)"
 	fi
 fi
